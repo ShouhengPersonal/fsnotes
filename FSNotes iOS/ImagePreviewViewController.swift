@@ -10,6 +10,7 @@ import UIKit
 import AudioToolbox
 import CropViewController
 
+// TODO: 图片裁剪相关的逻辑
 class ImagePreviewViewController: UIViewController, CropViewControllerDelegate {
     @IBOutlet weak var imageScrollView: ImageScrollView!
 
