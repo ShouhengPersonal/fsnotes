@@ -4,21 +4,30 @@ MAC_TARGET_VERSION = '10.14'
 IOS_TARGET_VERSION = '14'
 
 def mac_pods
+# 用来处理快捷方式
     pod 'MASShortcut', :git => 'https://github.com/glushchenko/MASShortcut.git', :branch => 'master'
 end
 
 def ios_pods
+# ZIP
     pod 'SSZipArchive', :git => 'https://github.com/glushchenko/ZipArchive.git', :branch => 'master'
+# 下拉
     pod 'DropDown', '2.3.13'
+# 侧滑列表
     pod 'SwipeCellKit', :git => 'https://github.com/glushchenko/SwipeCellKit.git', :branch => 'develop'
+# 图片裁剪
     pod 'CropViewController'
 end
 
 def common_pods
+#    语法高亮
     pod 'Highlightr', :git => 'https://github.com/glushchenko/Highlightr.git', :branch => 'master'
     pod 'libcmark_gfm', :git => 'https://github.com/glushchenko/libcmark_gfm', :branch => 'master' 
+#    加密
     pod 'RNCryptor', '~> 5.1.0'
+#    ZIP
     pod 'SSZipArchive', :git => 'https://github.com/glushchenko/ZipArchive.git', :branch => 'master'
+#   国际化域名编码
     pod 'Punycode'
 end
 

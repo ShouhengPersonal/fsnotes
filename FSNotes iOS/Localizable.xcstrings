@@ -4514,7 +4514,7 @@
       }
     },
     "Notes" : {
-      "comment" : "Notes in sidebar\nSidebar items\nSidebar label",
+      "comment" : "Sidebar items\nSidebar label\nNotes in sidebar",
       "localizations" : {
         "de" : {
           "stringUnit" : {
