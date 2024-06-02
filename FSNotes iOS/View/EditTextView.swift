@@ -28,8 +28,7 @@ class EditTextView: UITextView, UITextViewDelegate {
     required init?(coder: NSCoder) {
         if #available(iOS 13.2, *) {
             super.init(coder: coder)
-        }
-        else {
+        } else {
             super.init(frame: .zero, textContainer: nil)
             self.autoresizingMask = [.flexibleWidth, .flexibleHeight]
             self.contentMode = .scaleToFill
@@ -50,9 +49,11 @@ class EditTextView: UITextView, UITextViewDelegate {
         processor.editor = self
         
         textStorageProcessor = processor
+        // textStorage 持有文本视图中显示的文本。
         textStorage.delegate = processor
     }
 
+    // 文本选择
     override func selectionRects(for range: UITextRange) -> [UITextSelectionRect] {
         let selectionRects = super.selectionRects(for: range)
 
@@ -89,6 +90,7 @@ class EditTextView: UITextView, UITextViewDelegate {
         return result
     }
 
+    // 返回绘制符号的插入点，一个矩阵
     override func caretRect(for position: UITextPosition) -> CGRect {
         let characterIndex = offset(from: beginningOfDocument, to: position)
 
@@ -109,7 +111,8 @@ class EditTextView: UITextView, UITextViewDelegate {
 
         return caretRect
     }
-
+    
+    // 滚动内容的特定区域，使其在滚动视图中可见。
     override func scrollRectToVisible(_ rect: CGRect, animated: Bool) {
         guard isAllowedScrollRect == true else { return }
 
@@ -130,13 +133,15 @@ class EditTextView: UITextView, UITextViewDelegate {
             super.scrollRectToVisible(rect, animated: animated)
         }
     }
-
+    
+    // 剪切处理
     override func cut(_ sender: Any?) {
         guard let note = self.note else {
             super.cut(sender)
             return
         }
 
+        // 处理 todo 标签，剪切之前处理一下标签，使其成为 md 文本
         let attributedString = NSMutableAttributedString(attributedString: self.textStorage.attributedSubstring(from: self.selectedRange)).unLoadCheckboxes()
 
         let pathKey = NSAttributedString.Key(rawValue: "co.fluder.fsnotes.image.path")
@@ -152,6 +157,9 @@ class EditTextView: UITextView, UITextViewDelegate {
                 self.replace(textRange, withText: "")
             }
 
+            // 这些方法使给定的字形或字符范围的显示无效。对于字符范围变体，范围的未布局部分将被记住，
+            // 并将在布局可用时在稍后的某个时间点重新显示。对于字形范围变体，
+            // 范围中尚未生成字形的任何部分都将被忽略。这两种方法实际上都不会引起布局。
             self.layoutManager.invalidateDisplay(forCharacterRange: NSRange(location: location, length: 1))
             self.selectedRange = NSRange(location: location, length: 0)
 
@@ -167,8 +175,7 @@ class EditTextView: UITextView, UITextViewDelegate {
                         NSAttributedString.DocumentType.rtfd
                 ]
             ) {
-                UIPasteboard.general.setData(rtfd, forPasteboardType: "es.fsnot.attributed.text"
-                )
+                UIPasteboard.general.setData(rtfd, forPasteboardType: "es.fsnot.attributed.text")
 
                 if let textRange = getTextRange() {
                     self.replace(textRange, withText: "")
@@ -184,6 +191,7 @@ class EditTextView: UITextView, UITextViewDelegate {
         super.cut(sender)
     }
 
+    // 粘贴处理
     override func paste(_ sender: Any?) {
         guard let note = self.note else {
             super.paste(sender)
@@ -241,6 +249,7 @@ class EditTextView: UITextView, UITextViewDelegate {
         super.paste(sender)
     }
 
+    // 复制处理
     override func copy(_ sender: Any?) {
         guard let note = self.note else {
             super.copy(sender)
@@ -281,6 +290,7 @@ class EditTextView: UITextView, UITextViewDelegate {
         super.copy(sender)
     }
 
+    // 请求接收响应器启用或禁用用户界面中的指定命令。
     override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
         if action == #selector(UIResponderStandardEditActions.paste(_:)) {
             return true
@@ -289,6 +299,7 @@ class EditTextView: UITextView, UITextViewDelegate {
         return super.canPerformAction(action, withSender: sender)
     }
     
+    // 撤销和重置按钮
     public func initUndoRedoButons() {
         guard let ea = UIApplication.getEVC().editArea, let um = ea.undoManager else { return }
         
@@ -309,6 +320,7 @@ class EditTextView: UITextView, UITextViewDelegate {
         }
     }
 
+    // 保存图片
     public func saveImageClipboard(data: Data, note: Note, ext: String? = nil) {
         if let path = ImagesProcessor.writeFile(data: data, note: note, ext: ext) {
             if let imageUrl = note.getImageUrl(imageName: path) {

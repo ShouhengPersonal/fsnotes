@@ -20,6 +20,9 @@ class EditorViewController: UIViewController, UITextViewDelegate, UIDocumentPick
 
     private var isHighlighted: Bool = false
     private var isUndo = false
+    // 管理操作执行的队列。
+    // 操作队列根据其优先级和就绪程度调用其排队的operation对象。将操作添加到队列后，
+    // 该操作将保留在队列中，直到该操作完成其任务。添加操作后，不能直接从队列中删除操作。
     private let storageQueue = OperationQueue()
     private var toolbar: Toolbar = .markdown
 
@@ -37,14 +40,17 @@ class EditorViewController: UIViewController, UITextViewDelegate, UIDocumentPick
     private var isLandscape: Bool?
 
     override func viewDidLoad() {
+        // 可以同时运行的排队操作的最大数量。
         storageQueue.maxConcurrentOperationCount = 1
+        // 应用于队列调用的操作的默认服务级别。
+        // userInitiated 用于执行用户明确要求的工作，并且必须立即显示结果，以便允许进一步的用户交互。例如，在用户在邮件列表中选中邮件后加载该邮件。
         storageQueue.qualityOfService = .userInitiated
 
         editArea.textContainerInset = UIEdgeInsets(top: 13, left: 10, bottom: 0, right: 10)
 
+        // 点击事件
         let imageTap = SingleImageTouchDownGestureRecognizer(target: self, action: #selector(imageTapHandler(_:)))
         editArea.addGestureRecognizer(imageTap)
-
         let tap = SingleTouchDownGestureRecognizer(target: self, action: #selector(tapHandler(_:)))
         editArea.addGestureRecognizer(tap)
 
@@ -62,10 +68,23 @@ class EditorViewController: UIViewController, UITextViewDelegate, UIDocumentPick
 
         self.addToolBar(textField: editArea, toolbar: self.getMarkdownToolbar())
 
-        NotificationCenter.default.addObserver(self, selector: #selector(preferredContentSizeChanged), name: UIContentSizeCategory.didChangeNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(rotated), name: UIDevice.orientationDidChangeNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(refill), name: NSNotification.Name(rawValue: "es.fsnot.external.file.changed"), object: nil)
+        NotificationCenter.default.addObserver(
+            self, 
+            selector: #selector(preferredContentSizeChanged),
+            name: UIContentSizeCategory.didChangeNotification, 
+            object: nil)
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(rotated),
+            name: UIDevice.orientationDidChangeNotification,
+            object: nil)
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(refill),
+            name: NSNotification.Name(rawValue: "es.fsnot.external.file.changed"),
+            object: nil)
 
+        // 键盘交互模式
         editArea.keyboardDismissMode = .interactive
     }
 
@@ -90,12 +109,14 @@ class EditorViewController: UIViewController, UITextViewDelegate, UIDocumentPick
             editArea.perform(#selector(becomeFirstResponder), with: nil, afterDelay: 0)
         }
 
+        // 键盘
         if traitCollection.userInterfaceStyle == .dark {
             editArea.keyboardAppearance = .dark
         } else {
             editArea.keyboardAppearance = .default
         }
 
+        // 链接的颜色
         initLinksColor()
 
         editArea.indicatorStyle = (traitCollection.userInterfaceStyle == .dark) ? .white : .black
@@ -160,10 +181,19 @@ class EditorViewController: UIViewController, UITextViewDelegate, UIDocumentPick
         return super.textInputMode
     }
 
+    // TODO: 注册软键盘事件监听
     private func registerForKeyboardNotifications(){
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow), name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(keyboardWillShow),
+            name: UIResponder.keyboardWillShowNotification,
+            object: nil)
 
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide), name: UIResponder.keyboardWillHideNotification, object: nil)
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(keyboardWillHide),
+            name: UIResponder.keyboardWillHideNotification,
+            object: nil)
     }
 
     public func getToolbar(for note: Note) -> UIToolbar {
@@ -275,8 +305,7 @@ class EditorViewController: UIViewController, UITextViewDelegate, UIDocumentPick
         if note.type != .RichText {
             editArea.typingAttributes[.font] = UserDefaultsManagement.noteFont
         } else {
-            editArea.typingAttributes[.foregroundColor] =
-                UIColor.black
+            editArea.typingAttributes[.foregroundColor] = UIColor.black
         }
     }
 
@@ -287,6 +316,7 @@ class EditorViewController: UIViewController, UITextViewDelegate, UIDocumentPick
         vc.notesTable.actionsSheet(notes: [note], showAll: true, presentController: self)
     }
 
+    // TODO: 将快捷按钮添加到工具栏
     private func configureToolbar() {
         guard let note = self.note else { return }
 
@@ -335,6 +365,19 @@ class EditorViewController: UIViewController, UITextViewDelegate, UIDocumentPick
     }
 
     // RTF style completions
+    // 询问委托是否替换文本视图中的指定文本。
+    //    参数
+    //    textView
+    //    包含更改的文本视图。
+    //
+    //    range
+    //    当前选择范围。如果范围长度为0，则范围反映当前插入点。如果用户按下Delete键，则该范围的长度为1，并用一个空字符串对象替换该单个字符。
+    //
+    //    text
+    //    要插入的文本。
+    //
+    //    返回值
+    //    如果旧文本应该被新文本取代，则为True;如果替换操作应该中止，则为False。
     func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
 
         if isUndoAction {
@@ -386,11 +429,13 @@ class EditorViewController: UIViewController, UITextViewDelegate, UIDocumentPick
         return true
     }
 
+    // 处理标签逻辑
     private func tagsHandler(affectedCharRange: NSRange, text: String) {
         guard UserDefaultsManagement.inlineTags else { return }
 
         let textStorage = editArea.textStorage
 
+        // 这里是判断标签结束
         if text.count == 1, !["", " ", "\t", "\n"].contains(text) {
             let parRange = textStorage.mutableString.paragraphRange(for: NSRange(location: affectedCharRange.location, length: 0))
 
@@ -444,7 +489,8 @@ class EditorViewController: UIViewController, UITextViewDelegate, UIDocumentPick
 
             if text == "#" {
                 let vc = UIApplication.getVC()
-
+                
+                // 显示 tag 选择窗口
                 if let project = vc.searchQuery.project {
                     let tags = vc.sidebarTableView.getAllTags(projects: [project])
                     self.dropDown.dataSource = tags
@@ -458,6 +504,7 @@ class EditorViewController: UIViewController, UITextViewDelegate, UIDocumentPick
         }
     }
 
+    // 处理 wikilink：主要是判断文本里是否包含 wikilink
     private func wikilinkHandler(textView: UITextView, text: String) {
         guard text.count == 1, !["\n"].contains(text) else { return }
 
@@ -557,6 +604,7 @@ class EditorViewController: UIViewController, UITextViewDelegate, UIDocumentPick
         return nil
     }
 
+    // 显示 dropdown，就是 tag 选择窗口
     private func complete(offset: Int? = nil, range: NSRange? = nil, text: String? = nil, replacementRange: NSRange? = nil) {
         var endPosition: UITextPosition = editArea.endOfDocument
 
@@ -755,17 +803,29 @@ class EditorViewController: UIViewController, UITextViewDelegate, UIDocumentPick
                 return
             }
 
+            // 清空缓存信息
             note.invalidateCache()
             note.loadPreviewInfo(text: note.content.string)
 
             vc.updateSpotlightIndex(notes: [note])
 
             DispatchQueue.main.async {
+                // 这是要移动首页列表里的笔记排序？
                 self.rowUpdaterTimer.invalidate()
-                self.rowUpdaterTimer = Timer.scheduledTimer(timeInterval: 1.2, target: self, selector: #selector(self.updateCurrentRow), userInfo: nil, repeats: false)
+                self.rowUpdaterTimer = Timer.scheduledTimer(
+                    timeInterval: 1.2,
+                    target: self,
+                    selector: #selector(self.updateCurrentRow),
+                    userInfo: nil, 
+                    repeats: false)
 
                 self.tagsTimer?.invalidate()
-                self.tagsTimer = Timer.scheduledTimer(timeInterval: 2.5, target: self, selector: #selector(self.scanTags), userInfo: nil, repeats: false)
+                self.tagsTimer = Timer.scheduledTimer(
+                    timeInterval: 2.5,
+                    target: self,
+                    selector: #selector(self.scanTags),
+                    userInfo: nil,
+                    repeats: false)
             }
 
             usleep(100000)
@@ -1470,6 +1530,7 @@ class EditorViewController: UIViewController, UITextViewDelegate, UIDocumentPick
         userActivity?.needsSave = true
     }
 
+    // 预览相关的逻辑
     public func loadPreviewView() {
         guard let note = editArea.note else { return }
 

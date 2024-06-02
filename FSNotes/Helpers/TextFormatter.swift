@@ -5,7 +5,7 @@
 //  Created by Oleksandr Glushchenko on 3/6/18.
 //  Copyright © 2018 Oleksandr Glushchenko. All rights reserved.
 //
-
+// 这个类主要针对的是文本的直接替换，比如当用户按下某些按钮的时候使用
 import Foundation
 
 #if os(OSX)
@@ -22,13 +22,17 @@ import Foundation
 #endif
 
 public class TextFormatter {
+    /// 这行代码创建了一个新的 NSMutableAttributedString 对象，并将从整个富文本中提取的选中部分赋给它。attributedSelected.attributedSubstring(from: range) 用于获取选中范围内的富文本片段。
     private var attributedString: NSMutableAttributedString
+    /// 获取了整个 UITextView 的富文本内容，并将其存储在 attributedSelected 变量中。这个富文本内容可能包含了不同的样式和属性。
     private var attributedSelected: NSAttributedString
     private var type: NoteType
     private var textView: TextView
     private var note: Note
     private var storage: NSTextStorage
+    /// 富文本的范围
     private var selectedRange: NSRange
+    /// 这个范围是一个 NSRange 结构体，表示选中文本的起始位置和长度。
     private var range: NSRange
     private var newSelectedRange: NSRange?
     private var cursor: Int?
@@ -39,6 +43,7 @@ public class TextFormatter {
     private var isAutomaticQuoteSubstitutionEnabled: Bool = false
     private var isAutomaticDashSubstitutionEnabled: Bool = false
     
+    /// 这里的 note 可以移除掉，换成比如编辑器类型之类的字段
     init(textView: TextView, note: Note) {
         range = textView.selectedRange
         
@@ -53,6 +58,7 @@ public class TextFormatter {
             attributedSelected = textView.attributedText
         #endif
         
+        /// 这行代码创建了一个新的 NSMutableAttributedString 对象，并将从整个富文本中提取的选中部分赋给它。attributedSelected.attributedSubstring(from: range) 用于获取选中范围内的富文本片段。
         self.attributedString = NSMutableAttributedString(attributedString: attributedSelected.attributedSubstring(from: range))
         self.selectedRange = NSRange(0..<attributedString.length)
         
@@ -76,20 +82,24 @@ public class TextFormatter {
         return attributedString
     }
     
+    // 加粗处理
     func bold() {
+        // 针对 md 处理
         if note.isMarkdown() {
 
             // UnBold if not selected
-            if range.length == 0 {
+            if range.length == 0 { // 选中文本长度为空？
                 var resultFound = false
                 let string = getAttributedString().string
 
+                /// 这其实是从整个文本中用正则匹配 bold 然后遍历，判断其是否与当前选中文本存在交叉，若存在交叉则将其修改为加粗状态
                 NotesTextProcessor.boldRegex.matches(string, range: NSRange(0..<string.count)) { (result) -> Void in
                     guard let range = result?.range else { return }
 
                     if range.intersection(self.range) != nil {
                         let boldAttributed = self.getAttributedString().attributedSubstring(from: range)
 
+                        // 取消加粗？
                         self.unBold(attributedString: boldAttributed, range: range)
                         resultFound = true
                     }
@@ -127,6 +137,7 @@ public class TextFormatter {
             }
             #endif
             
+            // 标记撤销组的开始。
             textView.undoManager?.beginUndoGrouping()
 
             #if os(OSX)
@@ -147,6 +158,7 @@ public class TextFormatter {
                 textView.selectedRange = selectedRange
             #endif
 
+            // 标记撤销组的结束
             textView.undoManager?.endUndoGrouping()
         }
     }
@@ -750,7 +762,8 @@ public class TextFormatter {
 
         // Autocomplete todo lists
 
-        if selectedRange.location != currentParagraphRange.location && currentParagraphRange.upperBound - 2 < selectedRange.location, currentParagraph.length >= 2 {
+        if selectedRange.location != currentParagraphRange.location 
+            && currentParagraphRange.upperBound - 2 < selectedRange.location, currentParagraph.length >= 2 {
 
             if textView.selectedRange.upperBound > 2 {
                 let char = storage.attributedSubstring(from: NSRange(location: textView.selectedRange.upperBound - 2, length: 1))

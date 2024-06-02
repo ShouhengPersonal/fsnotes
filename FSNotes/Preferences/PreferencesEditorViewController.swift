@@ -272,6 +272,7 @@ class PreferencesEditorViewController: NSViewController {
         let fontManager = NSFontManager.shared
         let newFont = fontManager.convert(UserDefaultsManagement.codeFont)
         UserDefaultsManagement.codeFont = newFont
+        // 修改字体，这里的主要逻辑是在样式改变之后更改缓存的样式信息
         NotesTextProcessor.codeFont = newFont
         
         ViewController.shared()?.reloadFonts()

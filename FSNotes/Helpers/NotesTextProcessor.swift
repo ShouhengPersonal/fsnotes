@@ -6,6 +6,8 @@
 //  Copyright © 2017 Oleksandr Glushchenko. All rights reserved.
 //
 
+// 笔记文本处理，主要处理语法高亮等
+
 import Highlightr
 
 #if os(OSX)
@@ -231,7 +233,12 @@ public class NotesTextProcessor {
         return highlightr
     }
 
-    public static func highlightCode(attributedString: NSMutableAttributedString, range: NSRange, language: String? = nil, backgroundThread: Bool = false) {
+    public static func highlightCode(
+        attributedString: NSMutableAttributedString,
+        range: NSRange,
+        language: String? = nil,
+        backgroundThread: Bool = false
+    ) {
         guard let highlighter = NotesTextProcessor.getHighlighter(backgroundThread: backgroundThread) else { return }
 
         let codeString = attributedString.mutableString.substring(with: range)
@@ -242,7 +249,8 @@ public class NotesTextProcessor {
             attributedString.addAttribute(.backgroundColor, value: NotesTextProcessor.codeBackground, range: rangeNewline)
         }
 
-        guard UserDefaultsManagement.codeBlocksWithSyntaxHighlighting, let code = highlighter.highlight(codeString, as: preDefinedLanguage) else { return }
+        guard UserDefaultsManagement.codeBlocksWithSyntaxHighlighting,
+                let code = highlighter.highlight(codeString, as: preDefinedLanguage) else { return }
 
         if (range.location + range.length) > attributedString.length { return }
         if attributedString.length >= range.upperBound && (code.string != attributedString.mutableString.substring(with: range)) { return }
@@ -305,7 +313,6 @@ public class NotesTextProcessor {
         return nil
     }
     
-    
     /**
      Coverts App links:`[[Link Title]]` to Markdown: `[Link](fsnotes://find/link%20title)`
      
@@ -313,7 +320,6 @@ public class NotesTextProcessor {
      
      - returns: Content string with converted links
      */
-
     public static func convertAppLinks(in content: NSMutableAttributedString) -> NSMutableAttributedString {
         let attributedString = content.mutableCopy() as! NSMutableAttributedString
         let range = NSRange(0..<content.string.utf16.count)
@@ -505,10 +511,13 @@ public class NotesTextProcessor {
         return false
     }
 
+    // NSMutableAttributedString 具有部分文本的相关属性(如视觉样式、超链接或可访问性数据)的可变字符串。
     public static func minimalHighlight(attributedString: NSMutableAttributedString, paragraphRange: NSRange? = nil, note: Note) {
          let paragraphRange = paragraphRange ?? NSRange(0..<attributedString.length)
 
+        // addAttribute 将具有给定名称和值的属性添加到指定范围中的字符
         attributedString.addAttribute(.font, value: font, range: paragraphRange)
+        // fixAttributes 清除给定范围内的字体、段落样式和附件属性。
         attributedString.fixAttributes(in: paragraphRange)
 
         #if os(iOS)
@@ -526,6 +535,7 @@ public class NotesTextProcessor {
 
     public static func highlightMarkdown(attributedString: NSMutableAttributedString, paragraphRange: NSRange? = nil, note: Note) {
         let paragraphRange = paragraphRange ?? NSRange(0..<attributedString.length)
+        // 判断是否为全文
         let isFullScan = attributedString.length == paragraphRange.upperBound && paragraphRange.lowerBound == 0
         let string = attributedString.string
         
@@ -564,12 +574,38 @@ public class NotesTextProcessor {
             attributedString.addAttributes(hiddenAttributes, range: range())
         }
 
+        // enumerateAttribute 为带属性字符串中的特定属性的每个范围执行指定的闭包。
+        //        attrName
+        //        要枚举的属性的名称。
+        //
+        //        enumerationRange
+        //        枚举属性值的范围。
+        //
+        //        options
+        //        枚举使用的选项。有关可能的值，请参见NSAttributedString.EnumerationOptions。
+        //
+        //        block
+        //         一个闭包，应用于带属性字符串中指定属性的范围。
+        //         闭包接受三个参数:
+        //         1. 指定属性的值。
+        //         2. 属性值在带属性字符串中的范围。
+        //         3. 对布尔值的引用，可以在闭包中将其设置为true，以停止对带属性字符串的进一步处理。
         attributedString.enumerateAttribute(.link, in: paragraphRange,  options: []) { (value, range, stop) -> Void in
+            // attribute 返回具有指定索引处字符的指定名称的属性的值，并通过引用返回该属性应用的范围。
+            // 参数：
+            // attrName 属性的名称。
+            // location 为其返回属性的索引。该值不能超过接收方的边界。 如果索引超出接收方字符的末尾，则引发rangeException。
+            // range 如果非空:
+            //  如果指定属性存在于索引处，则在返回时，range包含指定属性值应用的范围。
+            //  如果指定属性在索引处不存在，则返回时range包含该属性不存在的范围。
+            //  这个范围不一定是attributeName覆盖的最大范围，它的范围取决于实现。如果需要最大范围，
+            //  请使用attribute(_:at:longestEffectiveRange:in:)。如果你不需要这个值，传递NULL。
             if value != nil && attributedString.attribute(.attachment, at: range.location, effectiveRange: nil) == nil {
                 attributedString.removeAttribute(.link, range: range)
             }
         }
 
+        // 似乎是要把指定的属性移除掉
         attributedString.enumerateAttribute(.strikethroughStyle, in: paragraphRange,  options: []) { (value, range, stop) -> Void in
             if value != nil {
                 attributedString.removeAttribute(.strikethroughStyle, range: range)
@@ -583,6 +619,7 @@ public class NotesTextProcessor {
         }
 
         attributedString.addAttribute(.font, value: font, range: paragraphRange)
+        // TODO: 为什么要调用 fixAttributes
         attributedString.fixAttributes(in: paragraphRange)
 
         #if os(iOS)
@@ -599,6 +636,7 @@ public class NotesTextProcessor {
 
         // We detect and process inline links not formatted
         
+        // 似乎是在处理链接
         if  UserDefaultsManagement.clickableLinks {
             NotesTextProcessor.autolinkRegex.matches(string, range: paragraphRange) { (result) -> Void in
                 guard var range = result?.range else { return }
@@ -619,12 +657,14 @@ public class NotesTextProcessor {
                     range = NSRange(location: range.location, length: range.length - 1)
                 }
                 
+                // 添加链接
                 if let url = URL(string: substring) {
                     attributedString.addAttribute(.link, value: url, range: range)
                 } else if let substring = String(substring).addingPercentEncoding(withAllowedCharacters: .urlFragmentAllowed) {
                     attributedString.addAttribute(.link, value: substring, range: range)
                 }
                 
+                // 这是用来隐藏 markdown 的符号？
                 if NotesTextProcessor.hideSyntax {
                     NotesTextProcessor.autolinkPrefixRegex.matches(string, range: range) { (innerResult) -> Void in
                         guard let innerRange = innerResult?.range else { return }
@@ -636,6 +676,7 @@ public class NotesTextProcessor {
             }
         }
         
+        // 处理 yaml 区块，这个是指 md 的前置信息？
         FSParser.yamlBlockRegex.matches(string, range: NSRange(location: 0, length: attributedString.length)) { (result) -> Void in
             guard let range = result?.range(at: 1) else { return }
             attributedString.addAttribute(.foregroundColor, value: NotesTextProcessor.fontColor, range: range)
@@ -655,6 +696,7 @@ public class NotesTextProcessor {
         }
         
         // We detect and process underlined headers
+        // 处理标题？？
         NotesTextProcessor.headersSetextRegex.matches(string, range: paragraphRange) { (result) -> Void in
             guard let range = result?.range else { return }
             attributedString.addAttribute(.font, value: boldFont, range: range)
@@ -1594,6 +1636,7 @@ public class NotesTextProcessor {
 }
 
 public struct MarklightRegex {
+    
     public let regularExpression: NSRegularExpression!
     
     public init(pattern: String, options: NSRegularExpression.Options = NSRegularExpression.Options(rawValue: 0)) {

@@ -9,6 +9,8 @@
 import AppKit
 
 class CodeBlock: NSTextBlock {
+    
+    // 代码块
     override func drawBackground(withFrame frameRect: NSRect, in controlView: NSView, characterRange charRange: NSRange, layoutManager: NSLayoutManager) {
         let selectionPath = NSBezierPath.init(roundedRect: frameRect, xRadius: 5, yRadius: 5)
 

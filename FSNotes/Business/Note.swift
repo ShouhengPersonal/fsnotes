@@ -932,6 +932,7 @@ public class Note: NSObject  {
         save()
     }
         
+    // TODO: 保存之前的处理逻辑
     public func save(globalStorage: Bool = true) {
         if self.isMarkdown() {
             self.content = self.content.unLoadCheckboxes()
@@ -1375,6 +1376,7 @@ public class Note: NSObject  {
     }
     #endif
 
+    /// 加载笔记的预览信息，当笔记保存等的时候，加载预览的笔记内容和图片等
     public func loadPreviewInfo(text: String? = nil) {
         let content = text ?? self.content.string
 
@@ -1387,8 +1389,11 @@ public class Note: NSObject  {
         var attachments: [URL] = []
         var mdImages: [String] = []
 
-        FSParser.imageInlineRegex.regularExpression.enumerateMatches(in: content, options: NSRegularExpression.MatchingOptions(rawValue: 0), range: NSRange(0..<content.count), using:
-        {(result, flags, stop) -> Void in
+        FSParser.imageInlineRegex.regularExpression.enumerateMatches(
+            in: content,
+            options: NSRegularExpression.MatchingOptions(rawValue: 0),
+            range: NSRange(0..<content.count),
+            using: {(result, flags, stop) -> Void in
 
             let nsContent = content as NSString
             if let range = result?.range(at: 0) {

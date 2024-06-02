@@ -15,14 +15,30 @@ import UIKit
 import AVKit
 #endif
 
+// 文本存储对象委托实现的可选方法用于处理文本编辑处理。
 class TextStorageProcessor: NSObject, NSTextStorageDelegate {
     public var shouldForceRescan: Bool?
     public var lastRemoved: String?
     public var editor: EditTextView?
 
+    // 框架在文本存储对象完成编辑处理时调用的方法。
+    //    textStorage
+    //    文本存储对象处理编辑。
+    //
+    //    editedMask
+    //    编辑的类型:editedAttributes、editedCharacters或两者兼而有之。
+    //
+    //    editedRange
+    //    原始字符串中的范围(在编辑之前)。
+    //
+    //    delta
+    //    编辑的长度增量发生变化。
 #if os(iOS)
     public func textStorage(
         _ textStorage: NSTextStorage,
+        // 指示更改类型的常量。
+        // editedAttributes 添加、删除或更改了属性。
+        // editedCharacters 字符被添加、删除或替换。
         didProcessEditing editedMask: NSTextStorage.EditActions,
         range editedRange: NSRange,
         changeInLength delta: Int) {
@@ -46,7 +62,9 @@ class TextStorageProcessor: NSObject, NSTextStorageDelegate {
         guard let note = editor?.note, note.isMarkdown() else { return }
         guard delta != 0 || shouldForceRescan == true else { return }
 
+        // 判断文本是否发生了改变，缓存了 md5 的值
         if note.content.string.md5 != note.cacheHash {
+            // 看着这里根据文本长度有一个性能优化
             if editedRange.length > 300000 {
                 NotesTextProcessor.minimalHighlight(attributedString: textStorage, note: note)
                 return
@@ -68,12 +86,14 @@ class TextStorageProcessor: NSObject, NSTextStorageDelegate {
     }
 
     private func shouldScanСompletely(textStorage: NSTextStorage, editedRange: NSRange) -> Bool {
+        // 编辑长度和展示文本长度相同
         if editedRange.length == textStorage.length {
             return true
         }
 
         let string = textStorage.mutableString.substring(with: editedRange)
 
+        // 标签或者代码
         return
             string == "`"
             || string == "`\n"
@@ -88,6 +108,7 @@ class TextStorageProcessor: NSObject, NSTextStorageDelegate {
         guard let note = editor?.note else { return }
 
         let range = NSRange(0..<textStorage.length)
+        // 从指定范围内的字符中移除命名属性。
         textStorage.removeAttribute(.backgroundColor, range: range)
 
         NotesTextProcessor.highlightMarkdown(attributedString: textStorage, note: note)
